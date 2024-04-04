@@ -26,6 +26,15 @@ def main(filename):
             # input()
     print("writing")
     with open(filename + ".words.txt", "w", encoding="utf8") as words_file:
+        words_file.write(
+            """<unk>
+<pad>
+<s>
+</s>
+.
+,
+"""
+        )
         for word in lemma:
             words_file.write(word + "\n")
 
