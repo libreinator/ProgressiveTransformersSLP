@@ -248,17 +248,15 @@ class SignProdDataset(data.Dataset):
         )
 
         examples = []
-        # Extract the parallel src, trg and file files
+
+        # Extract the parallel src, trg, and file files
         with io.open(src_path, mode="r", encoding="utf-8") as src_file, io.open(
             trg_path, mode="r", encoding="utf-8"
         ) as trg_file, io.open(file_path, mode="r", encoding="utf-8") as files_file:
             print("opened files")
-            i = 0
-            # For Source, Target and FilePath
-            for src_line, trg_line, files_line in zip(src_file, trg_file, files_file):
-                i += 1
-                print("\rline", i, end="")
-
+            for i, (src_line, trg_line, files_line) in enumerate(
+                zip(src_file, trg_file, files_file)
+            ):
                 # Strip away the "\n" at the end of the line
                 src_line, trg_line, files_line = (
                     src_line.strip(),
@@ -270,8 +268,10 @@ class SignProdDataset(data.Dataset):
                 trg_line = trg_line.split(" ")
                 if len(trg_line) == 1:
                     continue
+
                 # Turn each joint into a float value, with 1e-8 for numerical stability
-                trg_line = [(float(joint) + 1e-8) for joint in trg_line]
+                trg_line = [float(joint) + 1e-8 for joint in trg_line]
+
                 # Split up the joints into frames, using trg_size as the amount of coordinates in each frame
                 # If using skip frames, this just skips over every Nth frame
                 trg_frames = [
@@ -279,12 +279,11 @@ class SignProdDataset(data.Dataset):
                     for i in range(0, len(trg_line), trg_size * skip_frames)
                 ]
 
-                # Create a dataset examples out of the Source, Target Frames and FilesPath
-                if src_line != "" and trg_line != "":
+                # Create a dataset example out of the Source, Target Frames, and FilesPath
+                if src_line and trg_line:
                     examples.append(
                         data.Example.fromlist(
                             [src_line, trg_frames, files_line], fields
                         )
                     )
-
         super(SignProdDataset, self).__init__(examples, fields, **kwargs)
