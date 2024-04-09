@@ -270,7 +270,7 @@ class SignProdDataset(data.Dataset):
                     continue
 
                 # Turn each joint into a float value, with 1e-8 for numerical stability
-                trg_line = [float(joint) + 1e-8 for joint in trg_line]
+                trg_line = [float(joint) / 3 + 1e-8 for joint in trg_line]
 
                 # Split up the joints into frames, using trg_size as the amount of coordinates in each frame
                 # If using skip frames, this just skips over every Nth frame

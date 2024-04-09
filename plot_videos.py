@@ -41,7 +41,7 @@ def plot_video(
 
         # Cut off the percent_tok, multiply by 3 to restore joint size
         # TODO - Remove the *3 if the joints weren't divided by 3 in data creation
-        frame_joints = frame_joints[:-1]
+        frame_joints = frame_joints[:-1] * 3
 
         # Reduce the frame joints down to 2D for visualisation - Frame joints 2d shape is (48,2)
         frame_joints_2d = np.reshape(frame_joints, (50, 3))[:, :2]
