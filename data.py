@@ -238,52 +238,74 @@ class SignProdDataset(data.Dataset):
             Remaining keyword arguments: Passed to the constructor of
                 data.Dataset.
         """
-        print("inside SignProdDataset.__init__()")
+        print("inside SignProdDataset.__init__()", path)
         if not isinstance(fields[0], (tuple, list)):
             fields = [("src", fields[0]), ("trg", fields[1]), ("file_paths", fields[2])]
 
-        print("tuple")
         src_path, trg_path, file_path = tuple(
             os.path.expanduser(path + x) for x in exts
         )
 
         examples = []
 
-        # Extract the parallel src, trg, and file files
-        with io.open(src_path, mode="r", encoding="utf-8") as src_file, io.open(
-            trg_path, mode="r", encoding="utf-8"
-        ) as trg_file, io.open(file_path, mode="r", encoding="utf-8") as files_file:
-            print("opened files")
-            for i, (src_line, trg_line, files_line) in enumerate(
-                zip(src_file, trg_file, files_file)
+        if os.path.isfile(path + ".pth"):
+            print("binary found, loading")
+            (src_lines, files_lines, trg_lines) = torch.load(path + ".pth")
+            for i, (src_line, trg_frames, files_line) in enumerate(
+                zip(src_lines, trg_lines, files_lines)
             ):
-                # Strip away the "\n" at the end of the line
-                src_line, trg_line, files_line = (
-                    src_line.strip(),
-                    trg_line.strip(),
-                    files_line.strip(),
-                )
-
-                # Split target into joint coordinate values
-                trg_line = trg_line.split(" ")
-                if len(trg_line) == 1:
-                    continue
-
-                # Turn each joint into a float value, with 1e-8 for numerical stability
-                trg_line = [float(joint) / 3 + 1e-8 for joint in trg_line]
-
-                # Split up the joints into frames, using trg_size as the amount of coordinates in each frame
-                # If using skip frames, this just skips over every Nth frame
-                trg_frames = [
-                    trg_line[i : i + trg_size]
-                    for i in range(0, len(trg_line), trg_size * skip_frames)
-                ]
-
-                # Create a dataset example out of the Source, Target Frames, and FilesPath
-                if src_line and trg_line:
+                if src_line and trg_frames:
                     examples.append(
                         data.Example.fromlist(
                             [src_line, trg_frames, files_line], fields
                         )
                     )
+            del src_lines, trg_lines, files_lines
+        else:
+            # Extract the parallel src, trg, and file files
+            with io.open(src_path, mode="r", encoding="utf-8") as src_file, io.open(
+                trg_path, mode="r", encoding="utf-8"
+            ) as trg_file, io.open(file_path, mode="r", encoding="utf-8") as files_file:
+                print("opened files")
+                src_lines = []
+                trg_lines = []
+                files_lines = []
+                for i, (src_line, trg_line, files_line) in enumerate(
+                    zip(src_file, trg_file, files_file)
+                ):
+                    # Strip away the "\n" at the end of the line
+                    src_line, trg_line, files_line = (
+                        src_line.strip(),
+                        trg_line.strip(),
+                        files_line.strip(),
+                    )
+
+                    # Split target into joint coordinate values
+                    trg_line = trg_line.split(" ")
+                    if len(trg_line) == 1:
+                        continue
+
+                    # Turn each joint into a float value, with 1e-8 for numerical stability
+                    trg_line = [float(joint) / 3 + 1e-8 for joint in trg_line]
+
+                    # Split up the joints into frames, using trg_size as the amount of coordinates in each frame
+                    # If using skip frames, this just skips over every Nth frame
+                    trg_frames = [
+                        trg_line[i : i + trg_size]
+                        for i in range(0, len(trg_line), trg_size * skip_frames)
+                    ]
+                    src_lines.append(src_line)
+                    files_lines.append(files_line)
+                    trg_lines.append(trg_frames)
+
+                    # Create a dataset example out of the Source, Target Frames, and FilesPath
+                    if src_line and trg_line:
+                        examples.append(
+                            data.Example.fromlist(
+                                [src_line, trg_frames, files_line], fields
+                            )
+                        )
+                print("saving torch")
+                torch.save((src_lines, files_lines, trg_lines), path + ".pth")
+                print("saved")
         super(SignProdDataset, self).__init__(examples, fields, **kwargs)
