@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import dill as pickle
+import re
 import sys
 import os
 import torch
@@ -47,7 +49,6 @@ def load_data(
     files_lang = data_cfg.get("files", "files")
     # Train, Dev and Test Path
     train_path = data_cfg["train"]
-    dev_path = data_cfg["dev"]
     test_path = data_cfg["test"]
 
     if os.path.isfile(test_path + ".pth"):
@@ -113,13 +114,26 @@ def load_data(
     src_max_size = data_cfg.get("src_voc_limit", sys.maxsize)
     src_min_freq = data_cfg.get("src_voc_min_freq", 1)
     src_vocab_file = data_cfg.get("src_vocab", None)
-    src_vocab = build_vocab(
-        field="src",
-        min_freq=src_min_freq,
-        max_size=src_max_size,
-        dataset=train_data,
-        vocab_file=src_vocab_file,
-    )
+
+    if os.path.isfile("src_vocab.pth"):
+        print("loading binary src_vocab")
+        with open("src_vocab.pth", "rb") as f:
+            src_vocab = pickle.load(f)
+            print("done")
+    else:
+        print("build_vocab")
+        src_vocab = build_vocab(
+            field="src",
+            min_freq=src_min_freq,
+            max_size=src_max_size,
+            dataset=train_data,
+            vocab_file=src_vocab_file,
+        )
+
+        print("saving src_vocab")
+        with open("src_vocab.pth", "wb") as f:
+            pickle.dump(src_vocab, f)
+        print("done")
 
     # Create a target vocab just as big as the required target vector size -
     # So that len(trg_vocab) is # of joints + 1 (for the counter)
@@ -143,11 +157,22 @@ def load_data(
 def test(cfg_file, input_text: str, ckpt: str = None) -> None:
 
     print("inside test()")
+    text = re.sub(r"[^\w\s]", "", input_text)
+    text = text.lower()
+
+    if text[0] == " ":
+        text = text[1:]
+
+    if text[-1] == " ":
+        text = text[:-1]
+
+    if text[-1] != ".":
+        text += " ."
 
     with open("../data_aud_text/test.text", "w") as f:
-        f.write(input_text + " .\n")
+        f.write("\n" + text)
     with open("../data_aud_text/test.file", "w") as f:
-        f.write("inconnect_input\n")
+        f.write("\ninconnect_input")
     # Load the config file
     cfg = load_config(cfg_file)
 
@@ -172,7 +197,7 @@ def test(cfg_file, input_text: str, ckpt: str = None) -> None:
 
     # load the data
     print("load_data")
-    train_data, dev_data, test_data, src_vocab, trg_vocab = load_data(cfg=cfg)
+    test_data, src_vocab, trg_vocab = load_data(cfg=cfg)
 
     # To produce testing results
     data_to_predict = {"test": test_data}

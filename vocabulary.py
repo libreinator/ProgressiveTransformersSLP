@@ -9,12 +9,11 @@ import numpy as np
 
 from torchtext.data import Dataset
 
-from constants import UNK_TOKEN, DEFAULT_UNK_ID, \
-    EOS_TOKEN, BOS_TOKEN, PAD_TOKEN
+from constants import UNK_TOKEN, DEFAULT_UNK_ID, EOS_TOKEN, BOS_TOKEN, PAD_TOKEN
 
 
 class Vocabulary:
-    """ Vocabulary represents mapping between tokens and indices. """
+    """Vocabulary represents mapping between tokens and indices."""
 
     def __init__(self, tokens: List[str] = None, file: str = None) -> None:
 
@@ -24,7 +23,7 @@ class Vocabulary:
         # special symbols
         self.specials = [UNK_TOKEN, PAD_TOKEN, BOS_TOKEN, EOS_TOKEN]
 
-        self.stoi = defaultdict(DEFAULT_UNK_ID)
+        self.stoi = defaultdict(lambda: DEFAULT_UNK_ID)
         self.itos = []
         if tokens is not None:
             self._from_list(tokens)
@@ -39,7 +38,7 @@ class Vocabulary:
 
         :param tokens: list of tokens
         """
-        self.add_tokens(tokens=self.specials+tokens)
+        self.add_tokens(tokens=self.specials + tokens)
         assert len(self.stoi) == len(self.itos)
 
     def _from_file(self, file: str) -> None:
@@ -88,7 +87,7 @@ class Vocabulary:
         :param token:
         :return: True if covered, False otherwise
         """
-        return self.stoi[token] == DEFAULT_UNK_ID()
+        return self.stoi[token] == DEFAULT_UNK_ID
 
     def __len__(self) -> int:
         return len(self.itos)
@@ -110,8 +109,7 @@ class Vocabulary:
             sentence.append(s)
         return sentence
 
-    def arrays_to_sentences(self, arrays: np.array, cut_at_eos=True) \
-            -> List[List[str]]:
+    def arrays_to_sentences(self, arrays: np.array, cut_at_eos=True) -> List[List[str]]:
         """
         Convert multiple arrays containing sequences of token IDs to their
         sentences, optionally cutting them off at the end-of-sequence token.
@@ -122,13 +120,13 @@ class Vocabulary:
         """
         sentences = []
         for array in arrays:
-            sentences.append(
-                self.array_to_sentence(array=array, cut_at_eos=cut_at_eos))
+            sentences.append(self.array_to_sentence(array=array, cut_at_eos=cut_at_eos))
         return sentences
 
 
-def build_vocab(field: str, max_size: int, min_freq: int, dataset: Dataset,
-                vocab_file: str = None) -> Vocabulary:
+def build_vocab(
+    field: str, max_size: int, min_freq: int, dataset: Dataset, vocab_file: str = None
+) -> Vocabulary:
     """
     Builds vocabulary for a torchtext `field` from given`dataset` or
     `vocab_file`.
@@ -148,17 +146,17 @@ def build_vocab(field: str, max_size: int, min_freq: int, dataset: Dataset,
     else:
         # create newly
         def filter_min(counter: Counter, min_freq: int):
-            """ Filter counter by min frequency """
-            filtered_counter = Counter({t: c for t, c in counter.items()
-                                        if c >= min_freq})
+            """Filter counter by min frequency"""
+            filtered_counter = Counter(
+                {t: c for t, c in counter.items() if c >= min_freq}
+            )
             return filtered_counter
 
         def sort_and_cut(counter: Counter, limit: int):
-            """ Cut counter to most frequent,
+            """Cut counter to most frequent,
             sorted numerically and alphabetically"""
             # sort by frequency, then alphabetically
-            tokens_and_frequencies = sorted(counter.items(),
-                                            key=lambda tup: tup[0])
+            tokens_and_frequencies = sorted(counter.items(), key=lambda tup: tup[0])
             tokens_and_frequencies.sort(key=lambda tup: tup[1], reverse=True)
             vocab_tokens = [i[0] for i in tokens_and_frequencies[:limit]]
             return vocab_tokens
@@ -178,7 +176,7 @@ def build_vocab(field: str, max_size: int, min_freq: int, dataset: Dataset,
 
         vocab = Vocabulary(tokens=vocab_tokens)
         assert len(vocab) <= max_size + len(vocab.specials)
-        assert vocab.itos[DEFAULT_UNK_ID()] == UNK_TOKEN
+        assert vocab.itos[DEFAULT_UNK_ID] == UNK_TOKEN
 
     # check for all except for UNK token whether they are OOVs
     for s in vocab.specials[1:]:

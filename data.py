@@ -248,28 +248,37 @@ class SignProdDataset(data.Dataset):
 
         examples = []
 
-        if os.path.isfile(path + ".pth"):
+        count = 0
+        if os.path.isfile(path + ".examples.pth") and path != "../data_aud_text/test":
             print("binary found, loading")
-            (src_lines, files_lines, trg_lines) = torch.load(path + ".pth")
-            for i, (src_line, trg_frames, files_line) in enumerate(
-                zip(src_lines, trg_lines, files_lines)
-            ):
-                if src_line and trg_frames:
-                    examples.append(
-                        data.Example.fromlist(
-                            [src_line, trg_frames, files_line], fields
-                        )
-                    )
-            del src_lines, trg_lines, files_lines
+            examples = torch.load(path + ".examples.pth")
+            # src_lines, files_lines, trg_lines = torch.load(path + ".pth")
+            # for (
+            #     src_line,
+            #     files_line,
+            #     trg_frames,
+            # ) in zip(*torch.load(path + ".pth")):
+            #     # print("src_line", src_line)
+            #     # print("trg_frames", trg_frames)
+            #     # print("files_line", files_line)
+            #     print(count, end="\r")
+            #     count += 1
+            #     if src_line and trg_frames:
+            #         examples.append(
+            #             data.Example.fromlist(
+            #                 [src_line, trg_frames, files_line], fields
+            #             )
+            #         )
+            # del src_lines, trg_lines, files_lines
         else:
             # Extract the parallel src, trg, and file files
             with io.open(src_path, mode="r", encoding="utf-8") as src_file, io.open(
                 trg_path, mode="r", encoding="utf-8"
             ) as trg_file, io.open(file_path, mode="r", encoding="utf-8") as files_file:
                 print("opened files")
-                src_lines = []
-                trg_lines = []
-                files_lines = []
+                # src_lines = []
+                # trg_lines = []
+                # files_lines = []
                 for i, (src_line, trg_line, files_line) in enumerate(
                     zip(src_file, trg_file, files_file)
                 ):
@@ -294,9 +303,9 @@ class SignProdDataset(data.Dataset):
                         trg_line[i : i + trg_size]
                         for i in range(0, len(trg_line), trg_size * skip_frames)
                     ]
-                    src_lines.append(src_line)
-                    files_lines.append(files_line)
-                    trg_lines.append(trg_frames)
+                    # src_lines.append(src_line)
+                    # files_lines.append(files_line)
+                    # trg_lines.append(trg_frames)
 
                     # Create a dataset example out of the Source, Target Frames, and FilesPath
                     if src_line and trg_line:
@@ -305,7 +314,11 @@ class SignProdDataset(data.Dataset):
                                 [src_line, trg_frames, files_line], fields
                             )
                         )
-                print("saving torch")
-                torch.save((src_lines, files_lines, trg_lines), path + ".pth")
-                print("saved")
+                # print("saving torch")
+                # torch.save((src_lines, files_lines, trg_lines), path + ".pth")
+                # print("saved")
+                # del src_lines, files_lines, trg_lines
+                print("saving examples")
+                torch.save(examples, path + ".examples.pth")
+                print("done")
         super(SignProdDataset, self).__init__(examples, fields, **kwargs)

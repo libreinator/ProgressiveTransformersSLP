@@ -20,6 +20,7 @@ def plot_video(
     FPS = 25 // skip_frames
     video_file = file_path + "/{}.mp4".format(video_name.split(".")[0])
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    print("plot_video():", FPS, "fps,", len(joints), "joints")
 
     if references is None:
         video = cv2.VideoWriter(video_file, fourcc, float(FPS), (650, 650), True)
