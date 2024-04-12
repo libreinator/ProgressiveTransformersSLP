@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
-import dill as pickle
 import re
 import sys
 import os
+import dill as pickle
 import torch
 from model import build_model
 from helpers import (
@@ -170,9 +170,9 @@ def test(cfg_file, input_text: str, ckpt: str = None) -> None:
         text += " ."
 
     with open("../data_aud_text/test.text", "w") as f:
-        f.write("\n" + text)
+        f.write(text)
     with open("../data_aud_text/test.file", "w") as f:
-        f.write("\ninconnect_input")
+        f.write("inconnect_input")
     # Load the config file
     cfg = load_config(cfg_file)
 
@@ -255,8 +255,9 @@ def test(cfg_file, input_text: str, ckpt: str = None) -> None:
             display=display,
             type="test",
             file_paths=file_paths,
+            text=input_text,
         )
 
 
 if __name__ == "__main__":
-    test(cfg_file="Configs/Base.yaml", input_text="All the world is a stage")
+    test(cfg_file="Configs/Base.yaml", input_text=sys.argv[1])

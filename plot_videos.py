@@ -7,20 +7,27 @@ import _pickle as cPickle
 import gzip
 import subprocess
 import torch
-
+import textwrap
 from dtw import dtw
 from constants import PAD_TOKEN
 
 
 # Plot a video given a tensor of joints, a file path, video name and references/sequence ID
 def plot_video(
-    joints, file_path, video_name, references=None, skip_frames=1, sequence_ID=None
+    joints,
+    file_path,
+    video_name,
+    references=None,
+    skip_frames=1,
+    sequence_ID=None,
+    caption="Sign language output",
 ):
     # Create video template
     FPS = 25 // skip_frames
     video_file = file_path + "/{}.mp4".format(video_name.split(".")[0])
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     print("plot_video():", FPS, "fps,", len(joints), "joints")
+    print("joints", joints)
 
     if references is None:
         video = cv2.VideoWriter(video_file, fourcc, float(FPS), (650, 650), True)
@@ -42,23 +49,34 @@ def plot_video(
 
         # Cut off the percent_tok, multiply by 3 to restore joint size
         # TODO - Remove the *3 if the joints weren't divided by 3 in data creation
-        frame_joints = frame_joints[:-1] * 3
+        frame_joints = frame_joints[:-1]  # * 3
 
         # Reduce the frame joints down to 2D for visualisation - Frame joints 2d shape is (48,2)
         frame_joints_2d = np.reshape(frame_joints, (50, 3))[:, :2]
         # Draw the frame given 2D joints
         draw_frame_2D(frame, frame_joints_2d)
 
-        cv2.putText(
-            frame,
-            "Predicted Sign Pose",
-            (180, 600),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 0, 255),
-            2,
-        )
+        wrapped_text = textwrap.wrap(caption, width=35)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_size = 1
+        font_thickness = 2
+        for i, line in enumerate(wrapped_text):
+            textsize = cv2.getTextSize(line, font, font_size, font_thickness)[0]
+            gap = textsize[1] + 10
 
+            y = int((frame.shape[0] + textsize[1]) / 1.3) + i * gap
+            x = int((frame.shape[1] - textsize[0]) / 2)
+
+            cv2.putText(
+                frame,
+                line,
+                (x, y),
+                font,
+                font_size,
+                (0, 0, 0),
+                font_thickness,
+                lineType=cv2.LINE_AA,
+            )
         # If reference is provided, create and concatenate on the end
         if references is not None:
             # Extract the reference joints

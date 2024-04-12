@@ -514,7 +514,9 @@ class TrainManager:
         type,
         steps="",
         file_paths=None,
+        text=None,
     ):
+        print("TrainManager.produce_validation_video()")
 
         # If not at test
         if type != "test":
@@ -535,20 +537,17 @@ class TrainManager:
 
             seq = output_joints[i]
             ref_seq = references[i]
+            print("seq", seq)
+            print("ref_seq", ref_seq)
             input = inputs[i]
             # Write gloss label
             gloss_label = input[0]
-            if input[1] is not "</s>":
+            if input[1] != "</s>":
                 gloss_label += "_" + input[1]
-            if input[2] is not "</s>":
+            if input[2] != "</s>":
                 gloss_label += "_" + input[2]
 
-            # Alter the dtw timing of the produced sequence, and collect the DTW score
-            timing_hyp_seq, ref_seq_count, dtw_score = alter_DTW_timing(seq, ref_seq)
-
-            video_ext = "{}_{}.mp4".format(
-                gloss_label, "{0:.2f}".format(float(dtw_score)).replace(".", "_")
-            )
+            video_ext = "{}.mp4".format(gloss_label)
 
             if file_paths is not None:
                 sequence_ID = file_paths[i]
@@ -558,12 +557,13 @@ class TrainManager:
             # Plot this sequences video
             if "<" not in video_ext:
                 plot_video(
-                    joints=timing_hyp_seq,
+                    joints=seq.cpu().numpy(),
                     file_path=dir_name,
                     video_name=video_ext,
-                    references=ref_seq_count,
+                    # references=ref_seq_count,
                     skip_frames=self.skip_frames,
-                    sequence_ID=sequence_ID,
+                    caption=text,
+                    # sequence_ID=sequence_ID,
                 )
 
     # Train the batch
