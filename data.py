@@ -13,8 +13,8 @@ from torchtext import data
 from torchtext.data import Dataset, Iterator, Field
 import torch
 
-from constants import UNK_TOKEN, EOS_TOKEN, BOS_TOKEN, PAD_TOKEN, TARGET_PAD
-from vocabulary import build_vocab, Vocabulary
+from .constants import UNK_TOKEN, EOS_TOKEN, BOS_TOKEN, PAD_TOKEN, TARGET_PAD
+from .vocabulary import build_vocab, Vocabulary
 
 
 # Load the Regression Data
@@ -238,7 +238,7 @@ class SignProdDataset(data.Dataset):
             Remaining keyword arguments: Passed to the constructor of
                 data.Dataset.
         """
-        print("inside SignProdDataset.__init__()", path)
+        # print("inside SignProdDataset.__init__()", path)
         if not isinstance(fields[0], (tuple, list)):
             fields = [("src", fields[0]), ("trg", fields[1]), ("file_paths", fields[2])]
 
@@ -250,7 +250,7 @@ class SignProdDataset(data.Dataset):
 
         count = 0
         if os.path.isfile(path + ".examples.pth") and path != "../data_aud_text/test":
-            print("binary found, loading")
+            # print("binary found, loading")
             examples = torch.load(path + ".examples.pth")
             # src_lines, files_lines, trg_lines = torch.load(path + ".pth")
             # for (
@@ -275,7 +275,7 @@ class SignProdDataset(data.Dataset):
             with io.open(src_path, mode="r", encoding="utf-8") as src_file, io.open(
                 trg_path, mode="r", encoding="utf-8"
             ) as trg_file, io.open(file_path, mode="r", encoding="utf-8") as files_file:
-                print("opened files")
+                # print("opened files")
                 # src_lines = []
                 # trg_lines = []
                 # files_lines = []
@@ -318,7 +318,7 @@ class SignProdDataset(data.Dataset):
                 # torch.save((src_lines, files_lines, trg_lines), path + ".pth")
                 # print("saved")
                 # del src_lines, files_lines, trg_lines
-                print("saving examples")
+                # print("saving examples")
                 torch.save(examples, path + ".examples.pth")
-                print("done")
+                # print("done")
         super(SignProdDataset, self).__init__(examples, fields, **kwargs)

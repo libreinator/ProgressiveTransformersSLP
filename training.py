@@ -10,9 +10,9 @@ from torch import Tensor
 from torch.utils.tensorboard import SummaryWriter
 from torchtext.data import Dataset
 
-from model import build_model
-from batch import Batch
-from helpers import (
+from .model import build_model
+from .batch import Batch
+from .helpers import (
     load_config,
     log_cfg,
     load_checkpoint,
@@ -23,14 +23,14 @@ from helpers import (
     ConfigurationError,
     get_latest_checkpoint,
 )
-from model import Model
-from prediction import validate_on_data
-from loss import RegLoss, XentLoss
-from data import load_data, make_data_iter
-from builders import build_optimizer, build_scheduler, build_gradient_clipper
-from constants import TARGET_PAD
+from .model import Model
+from .prediction import validate_on_data
+from .loss import RegLoss, XentLoss
+from .data import load_data, make_data_iter
+from .builders import build_optimizer, build_scheduler, build_gradient_clipper
+from .constants import TARGET_PAD
 
-from plot_videos import plot_video, alter_DTW_timing
+from .plot_videos import plot_video, alter_DTW_timing
 
 
 class TrainManager:
@@ -516,7 +516,7 @@ class TrainManager:
         file_paths=None,
         text=None,
     ):
-        print("TrainManager.produce_validation_video()")
+        # print("TrainManager.produce_validation_video()")
 
         # If not at test
         if type != "test":
@@ -537,8 +537,8 @@ class TrainManager:
 
             seq = output_joints[i]
             ref_seq = references[i]
-            print("seq", seq)
-            print("ref_seq", ref_seq)
+            # print("seq", seq)
+            # print("ref_seq", ref_seq)
             input = inputs[i]
             # Write gloss label
             gloss_label = input[0]
@@ -556,7 +556,7 @@ class TrainManager:
 
             # Plot this sequences video
             if "<" not in video_ext:
-                plot_video(
+                return plot_video(
                     joints=seq.cpu().numpy(),
                     file_path=dir_name,
                     video_name=video_ext,

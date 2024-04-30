@@ -4,17 +4,17 @@ import math
 import torch
 from torchtext.data import Dataset
 
-from helpers import (
+from .helpers import (
     bpe_postprocess,
     load_config,
     get_latest_checkpoint,
     load_checkpoint,
     calculate_dtw,
 )
-from model import build_model, Model
-from batch import Batch
-from data import load_data, make_data_iter
-from constants import UNK_TOKEN, PAD_TOKEN, EOS_TOKEN
+from .model import build_model, Model
+from .batch import Batch
+from .data import load_data, make_data_iter
+from .constants import UNK_TOKEN, PAD_TOKEN, EOS_TOKEN
 
 
 # Validate epoch given a dataset

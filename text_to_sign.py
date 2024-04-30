@@ -5,19 +5,20 @@ import sys
 import os
 import dill as pickle
 import torch
-from model import build_model
-from helpers import (
+from .model import build_model
+from .helpers import (
     load_config,
     load_checkpoint,
     get_latest_checkpoint,
 )
-from prediction import validate_on_data
-from training import TrainManager
+from .prediction import validate_on_data
+from .training import TrainManager
 from torchtext import data
 from torchtext.data import Dataset
-from constants import UNK_TOKEN, PAD_TOKEN, TARGET_PAD
-from vocabulary import build_vocab, Vocabulary
-from data import SignProdDataset
+from .constants import UNK_TOKEN, PAD_TOKEN, TARGET_PAD
+from .vocabulary import build_vocab, Vocabulary
+from .data import SignProdDataset
+from flask import Flask, request
 
 
 # shortened version of load_data
@@ -116,12 +117,12 @@ def load_data(
     src_vocab_file = data_cfg.get("src_vocab", None)
 
     if os.path.isfile("src_vocab.pth"):
-        print("loading binary src_vocab")
+        # print("loading binary src_vocab")
         with open("src_vocab.pth", "rb") as f:
             src_vocab = pickle.load(f)
-            print("done")
+        # print("done")
     else:
-        print("build_vocab")
+        # print("build_vocab")
         src_vocab = build_vocab(
             field="src",
             min_freq=src_min_freq,
@@ -130,10 +131,10 @@ def load_data(
             vocab_file=src_vocab_file,
         )
 
-        print("saving src_vocab")
+        # print("saving src_vocab")
         with open("src_vocab.pth", "wb") as f:
             pickle.dump(src_vocab, f)
-        print("done")
+        # print("done")
 
     # Create a target vocab just as big as the required target vector size -
     # So that len(trg_vocab) is # of joints + 1 (for the counter)
@@ -153,10 +154,74 @@ def load_data(
     return test_data, src_vocab, trg_vocab
 
 
-# pylint: disable-msg=logging-too-many-args
-def test(cfg_file, input_text: str, ckpt: str = None) -> None:
+cfg_file = "Configs/Base.yaml"
 
-    print("inside test()")
+print("Loading saved model")
+# Load the config file
+cfg = load_config(cfg_file)
+
+# Load the model directory and checkpoint
+model_dir = cfg["training"]["model_dir"]
+# when checkpoint is not specified, take latest (best) from model dir
+ckpt = None
+if ckpt is None:
+    # print("get_latest_checkpoint")
+    ckpt = get_latest_checkpoint(model_dir, post_fix="_best")
+    if ckpt is None:
+        raise FileNotFoundError(
+            "No checkpoint found in directory {}.".format(model_dir)
+        )
+
+batch_size = cfg["training"].get("eval_batch_size", cfg["training"]["batch_size"])
+batch_type = cfg["training"].get(
+    "eval_batch_type", cfg["training"].get("batch_type", "sentence")
+)
+use_cuda = cfg["training"].get("use_cuda", False)
+eval_metric = cfg["training"]["eval_metric"]
+max_output_length = cfg["training"].get("max_output_length", None)
+
+# load the data
+# print("load_data")
+test_data, src_vocab, trg_vocab = load_data(cfg=cfg)
+
+# To produce testing results
+data_to_predict = {"test": test_data}
+# To produce validation results
+# data_to_predict = {"dev": dev_data}
+
+# Load model state from disk
+# print("load_checkpoint")
+model_checkpoint = load_checkpoint(ckpt, use_cuda=use_cuda)
+
+# Build model and load parameters into it
+# print("build_model")
+model = build_model(cfg, src_vocab=src_vocab, trg_vocab=trg_vocab)
+model.load_state_dict(model_checkpoint["model_state"])
+# If cuda, set model as cuda
+if use_cuda:
+    model.cuda()
+
+# print("save binary")
+# torch.save(model, "model.binary")
+# print("saved model")
+
+# Set up trainer to produce videos
+# print("TrainManager")
+trainer = TrainManager(model=model, config=cfg, test=True)
+
+
+app = Flask(__name__)
+
+
+@app.route("/text", methods=["GET", "POST"])
+def speech():
+    if request.method == "POST":
+        data = str(request.data)
+        print(data)
+        input_text = request.form["query"]
+        print(input_text)
+
+    # print("inside test()")
     text = re.sub(r"[^\w\s]", "", input_text)
     text = text.lower()
 
@@ -173,63 +238,19 @@ def test(cfg_file, input_text: str, ckpt: str = None) -> None:
         f.write(text)
     with open("../data_aud_text/test.file", "w") as f:
         f.write("inconnect_input")
-    # Load the config file
-    cfg = load_config(cfg_file)
 
-    # Load the model directory and checkpoint
-    model_dir = cfg["training"]["model_dir"]
-    # when checkpoint is not specified, take latest (best) from model dir
-    if ckpt is None:
-        print("get_latest_checkpoint")
-        ckpt = get_latest_checkpoint(model_dir, post_fix="_best")
-        if ckpt is None:
-            raise FileNotFoundError(
-                "No checkpoint found in directory {}.".format(model_dir)
-            )
-
-    batch_size = cfg["training"].get("eval_batch_size", cfg["training"]["batch_size"])
-    batch_type = cfg["training"].get(
-        "eval_batch_type", cfg["training"].get("batch_type", "sentence")
-    )
-    use_cuda = cfg["training"].get("use_cuda", False)
-    eval_metric = cfg["training"]["eval_metric"]
-    max_output_length = cfg["training"].get("max_output_length", None)
-
-    # load the data
-    print("load_data")
     test_data, src_vocab, trg_vocab = load_data(cfg=cfg)
-
     # To produce testing results
     data_to_predict = {"test": test_data}
-    # To produce validation results
-    # data_to_predict = {"dev": dev_data}
-
-    # Load model state from disk
-    print("load_checkpoint")
-    model_checkpoint = load_checkpoint(ckpt, use_cuda=use_cuda)
-
-    # Build model and load parameters into it
-    print("build_model")
-    model = build_model(cfg, src_vocab=src_vocab, trg_vocab=trg_vocab)
-    model.load_state_dict(model_checkpoint["model_state"])
-    # If cuda, set model as cuda
-    if use_cuda:
-        model.cuda()
-
-    # print("save binary")
-    # torch.save(model, "model.binary")
-    # print("saved model")
-
-    # Set up trainer to produce videos
-    print("TrainManager")
-    trainer = TrainManager(model=model, config=cfg, test=True)
+    print("data_to_predict", data_to_predict)
 
     # For each of the required data, produce results
     for data_set_name, data_set in data_to_predict.items():
-        print("data_set_name", data_set_name)
-        print("data_set", data_set)
+        # print("data_set_name", data_set_name)
+        # print("data_set", data_set)
 
         # Validate for this data set
+        print("Generating poses")
         score, loss, references, hypotheses, inputs, all_dtw_scores, file_paths = (
             validate_on_data(
                 model=trainer.model,
@@ -247,7 +268,8 @@ def test(cfg_file, input_text: str, ckpt: str = None) -> None:
         display = list(range(len(hypotheses)))
 
         # Produce videos for the produced hypotheses
-        trainer.produce_validation_video(
+        print("Producing video")
+        video = trainer.produce_validation_video(
             output_joints=hypotheses,
             inputs=inputs,
             references=references,
@@ -257,7 +279,5 @@ def test(cfg_file, input_text: str, ckpt: str = None) -> None:
             file_paths=file_paths,
             text=input_text,
         )
-
-
-if __name__ == "__main__":
-    test(cfg_file="Configs/Base.yaml", input_text=sys.argv[1])
+        print("Video saved to", video)
+        return video

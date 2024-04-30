@@ -8,8 +8,8 @@ import gzip
 import subprocess
 import torch
 import textwrap
-from dtw import dtw
-from constants import PAD_TOKEN
+from .dtw import dtw
+from .constants import PAD_TOKEN
 
 
 # Plot a video given a tensor of joints, a file path, video name and references/sequence ID
@@ -26,8 +26,8 @@ def plot_video(
     FPS = 25 // skip_frames
     video_file = file_path + "/{}.mp4".format(video_name.split(".")[0])
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    print("plot_video():", FPS, "fps,", len(joints), "joints")
-    print("joints", joints)
+    # print("plot_video():", FPS, "fps,", len(joints), "joints")
+    # print("joints", joints)
 
     if references is None:
         video = cv2.VideoWriter(video_file, fourcc, float(FPS), (650, 650), True)
@@ -120,6 +120,7 @@ def plot_video(
         num_frames += 1
     # Release the video
     video.release()
+    return video_file
 
 
 # This is the format of the 3D data, outputted from the Inverse Kinematics model

@@ -1,12 +1,13 @@
 import math
 from torch import nn, Tensor
-from helpers import freeze_params
+from .helpers import freeze_params
 import torch
+
 
 class MaskedNorm(nn.Module):
     """
-        Original Code from:
-        https://discuss.pytorch.org/t/batchnorm-for-different-sized-samples-in-batch/44251/8
+    Original Code from:
+    https://discuss.pytorch.org/t/batchnorm-for-different-sized-samples-in-batch/44251/8
     """
 
     def __init__(self, norm_type, num_groups, num_features):
@@ -38,20 +39,22 @@ class MaskedNorm(nn.Module):
             batched_normed = self.norm(reshaped)
             return batched_normed.reshape([x.shape[0], -1, self.num_features])
 
-class Embeddings(nn.Module):
 
+class Embeddings(nn.Module):
     """
     Simple embeddings class
     """
 
     # pylint: disable=unused-argument
-    def __init__(self,
-                 embedding_dim: int = 64,
-                 scale: bool = False,
-                 vocab_size: int = 0,
-                 padding_idx: int = 1,
-                 freeze: bool = False,
-                 **kwargs):
+    def __init__(
+        self,
+        embedding_dim: int = 64,
+        scale: bool = False,
+        vocab_size: int = 0,
+        padding_idx: int = 1,
+        freeze: bool = False,
+        **kwargs
+    ):
         """
         Create new embeddings for the vocabulary.
         Use scaling for the Transformer.
@@ -67,8 +70,7 @@ class Embeddings(nn.Module):
         self.embedding_dim = embedding_dim
         self.scale = scale
         self.vocab_size = vocab_size
-        self.lut = nn.Embedding(vocab_size, self.embedding_dim,
-                                padding_idx=padding_idx)
+        self.lut = nn.Embedding(vocab_size, self.embedding_dim, padding_idx=padding_idx)
 
         if freeze:
             freeze_params(self)
@@ -87,4 +89,7 @@ class Embeddings(nn.Module):
 
     def __repr__(self):
         return "%s(embedding_dim=%d, vocab_size=%d)" % (
-            self.__class__.__name__, self.embedding_dim, self.vocab_size)
+            self.__class__.__name__,
+            self.embedding_dim,
+            self.vocab_size,
+        )
